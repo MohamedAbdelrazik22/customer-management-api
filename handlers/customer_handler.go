@@ -16,26 +16,52 @@ import (
 // emailRegex is a simple pattern used to validate email addresses.
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
-// CustomerHandler holds a reference to the customer repository.
-type CustomerHandler struct {
-	repo *repositories.CustomerRepository
+// CustomerRepositoryInterface defines the methods the handler depends on.
+// This allows tests to swap in a fake repository without a real database.
+type CustomerRepositoryInterface interface {
+	GetAll(params models.ListParams) (*models.PaginatedResult, error)
+	GetByID(id int) (*models.Customer, error)
+	Create(input models.CreateCustomerInput) (*models.Customer, error)
+	Update(id int, input models.UpdateCustomerInput) (*models.Customer, error)
+	Delete(id int) error
 }
 
-// NewCustomerHandler creates a new CustomerHandler.
+// CustomerHandler holds a reference to the customer repository interface.
+type CustomerHandler struct {
+	repo CustomerRepositoryInterface
+}
+
+// NewCustomerHandler creates a CustomerHandler backed by the real MySQL repository.
 func NewCustomerHandler(repo *repositories.CustomerRepository) *CustomerHandler {
 	return &CustomerHandler{repo: repo}
 }
 
+// NewCustomerHandlerWithInterface creates a CustomerHandler with any repository
+// implementation — useful for unit tests with a fake repository.
+func NewCustomerHandlerWithInterface(repo CustomerRepositoryInterface) *CustomerHandler {
+	return &CustomerHandler{repo: repo}
+}
+
 // GetAll handles GET /customers
-// Returns all customers as a JSON array.
+// Supports optional query parameters:
+//
+//	?page=1      (default: 1)
+//	?limit=10    (default: 10, max: 100)
+//	?search=ahmed (searches name and email)
 func (h *CustomerHandler) GetAll(c *gin.Context) {
-	customers, err := h.repo.GetAll()
+	params := models.ListParams{
+		Page:   parseQueryInt(c, "page", 1),
+		Limit:  parseQueryInt(c, "limit", 10),
+		Search: strings.TrimSpace(c.Query("search")),
+	}
+
+	result, err := h.repo.GetAll(params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve customers"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": customers})
+	c.JSON(http.StatusOK, result)
 }
 
 // GetByID handles GET /customers/:id
@@ -168,6 +194,20 @@ func parseID(c *gin.Context) (int, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+// parseQueryInt reads a query parameter as an integer.
+// Falls back to defaultVal if the parameter is missing or not a valid integer.
+func parseQueryInt(c *gin.Context, key string, defaultVal int) int {
+	raw := c.Query(key)
+	if raw == "" {
+		return defaultVal
+	}
+	val, err := strconv.Atoi(raw)
+	if err != nil || val < 1 {
+		return defaultVal
+	}
+	return val
 }
 
 // validateCustomerInput checks name, email and status fields.

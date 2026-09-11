@@ -23,18 +23,50 @@ func NewCustomerRepository(db *sql.DB) *CustomerRepository {
 	return &CustomerRepository{db: db}
 }
 
-// GetAll retrieves every customer from the database.
-func (r *CustomerRepository) GetAll() ([]models.Customer, error) {
-	query := "SELECT id, name, email, status, created_at FROM customers ORDER BY id"
+// GetAll retrieves customers with optional search and pagination.
+// params.Search filters by name or email (case-insensitive LIKE match).
+// params.Page and params.Limit control which page of results is returned.
+func (r *CustomerRepository) GetAll(params models.ListParams) (*models.PaginatedResult, error) {
+	// Sanitize pagination values
+	if params.Page < 1 {
+		params.Page = 1
+	}
+	if params.Limit < 1 {
+		params.Limit = 10
+	}
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
 
-	rows, err := r.db.Query(query)
+	// Build WHERE clause for optional search
+	var args []interface{}
+	whereClause := ""
+	if params.Search != "" {
+		whereClause = " WHERE name LIKE ? OR email LIKE ?"
+		like := "%" + params.Search + "%"
+		args = append(args, like, like)
+	}
+
+	// Count total matching rows (for pagination metadata)
+	var total int
+	countQuery := "SELECT COUNT(*) FROM customers" + whereClause
+	if err := r.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		return nil, err
+	}
+
+	// Fetch the requested page
+	offset := (params.Page - 1) * params.Limit
+	dataQuery := "SELECT id, name, email, status, created_at FROM customers" +
+		whereClause + " ORDER BY id LIMIT ? OFFSET ?"
+	args = append(args, params.Limit, offset)
+
+	rows, err := r.db.Query(dataQuery, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var customers []models.Customer
-
+	customers := []models.Customer{}
 	for rows.Next() {
 		var c models.Customer
 		if err := rows.Scan(&c.ID, &c.Name, &c.Email, &c.Status, &c.CreatedAt); err != nil {
@@ -42,18 +74,26 @@ func (r *CustomerRepository) GetAll() ([]models.Customer, error) {
 		}
 		customers = append(customers, c)
 	}
-
-	// rows.Err() reports any error that occurred during iteration.
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	// Return an empty slice instead of nil so JSON encodes as [] not null.
-	if customers == nil {
-		customers = []models.Customer{}
+	// Calculate total pages (at least 1)
+	totalPages := total / params.Limit
+	if total%params.Limit != 0 {
+		totalPages++
+	}
+	if totalPages == 0 {
+		totalPages = 1
 	}
 
-	return customers, nil
+	return &models.PaginatedResult{
+		Data:       customers,
+		Page:       params.Page,
+		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
 }
 
 // GetByID retrieves a single customer by their ID.

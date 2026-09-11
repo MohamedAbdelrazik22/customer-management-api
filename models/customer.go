@@ -24,3 +24,19 @@ type UpdateCustomerInput struct {
 	Email  string `json:"email"`
 	Status string `json:"status"`
 }
+
+// ListParams holds optional query parameters for listing customers.
+type ListParams struct {
+	Page   int    // 1-based page number (default 1)
+	Limit  int    // rows per page (default 10, max 100)
+	Search string // searches name and email (empty = no filter)
+}
+
+// PaginatedResult wraps a page of customers with metadata.
+type PaginatedResult struct {
+	Data       []Customer `json:"data"`
+	Page       int        `json:"page"`
+	Limit      int        `json:"limit"`
+	Total      int        `json:"total"`
+	TotalPages int        `json:"total_pages"`
+}
