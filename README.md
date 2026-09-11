@@ -32,7 +32,7 @@ Make sure you have the following installed before running the project:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/customer-management-api.git
+git clone https://github.com/MohamedAbdelrazik22/customer-management-api.git
 cd customer-management-api
 ```
 
@@ -100,8 +100,8 @@ GET /customers
   "data": [
     {
       "id": 1,
-      "name": "Ahmed Ali",
-      "email": "ahmed@example.com",
+      "name": "Mohamed Abdelrazik",
+      "email": "Mohamed@example.com",
       "status": "active",
       "created_at": "2026-09-11T10:30:00Z"
     }
@@ -123,8 +123,8 @@ GET /customers/:id
 {
   "data": {
     "id": 1,
-    "name": "Ahmed Ali",
-    "email": "ahmed@example.com",
+    "name": "Mohamed Abdelrazik",
+    "email": "Mohamed@example.com",
     "status": "active",
     "created_at": "2026-09-11T10:30:00Z"
   }
@@ -152,8 +152,8 @@ Content-Type: application/json
 
 ```json
 {
-  "name": "Ahmed Ali",
-  "email": "ahmed@example.com",
+  "name": "Mohamed Abdelrazik",
+  "email": "Mohamed@example.com",
   "status": "active"
 }
 ```
@@ -170,8 +170,8 @@ Content-Type: application/json
 {
   "data": {
     "id": 1,
-    "name": "Ahmed Ali",
-    "email": "ahmed@example.com",
+    "name": "Mohamed Abdelrazik",
+    "email": "Mohamed@example.com",
     "status": "active",
     "created_at": "2026-09-11T10:30:00Z"
   }
@@ -191,8 +191,8 @@ Content-Type: application/json
 
 ```json
 {
-  "name": "Ahmed Mohamed",
-  "email": "ahmed@example.com",
+  "name": "Mohamed Mohamed",
+  "email": "Mohamed@example.com",
   "status": "inactive"
 }
 ```

@@ -47,7 +47,7 @@ func NewCustomerHandlerWithInterface(repo CustomerRepositoryInterface) *Customer
 //
 //	?page=1      (default: 1)
 //	?limit=10    (default: 10, max: 100)
-//	?search=ahmed (searches name and email)
+//	?search=mohamed (searches name and email)
 func (h *CustomerHandler) GetAll(c *gin.Context) {
 	params := models.ListParams{
 		Page:   parseQueryInt(c, "page", 1),

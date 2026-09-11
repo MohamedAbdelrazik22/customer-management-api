@@ -127,7 +127,7 @@ func toJSON(t *testing.T, v interface{}) *bytes.Buffer {
 func TestCreate_Success(t *testing.T) {
 	r := setupRouter(newFakeRepo())
 	body := toJSON(t, map[string]string{
-		"name": "Ahmed Ali", "email": "ahmed@example.com", "status": "active",
+		"name": "Mohamed Abdelrazik", "email": "Mohamed@example.com", "status": "active",
 	})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
@@ -141,7 +141,7 @@ func TestCreate_Success(t *testing.T) {
 
 func TestCreate_MissingName(t *testing.T) {
 	r := setupRouter(newFakeRepo())
-	body := toJSON(t, map[string]string{"email": "ahmed@example.com", "status": "active"})
+	body := toJSON(t, map[string]string{"email": "Mohamed@example.com", "status": "active"})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
 	req.Header.Set("Content-Type", "application/json")
@@ -155,7 +155,7 @@ func TestCreate_MissingName(t *testing.T) {
 func TestCreate_InvalidEmail(t *testing.T) {
 	r := setupRouter(newFakeRepo())
 	body := toJSON(t, map[string]string{
-		"name": "Ahmed", "email": "not-an-email", "status": "active",
+		"name": "Mohamed", "email": "not-an-email", "status": "active",
 	})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
@@ -170,7 +170,7 @@ func TestCreate_InvalidEmail(t *testing.T) {
 func TestCreate_InvalidStatus(t *testing.T) {
 	r := setupRouter(newFakeRepo())
 	body := toJSON(t, map[string]string{
-		"name": "Ahmed", "email": "ahmed@example.com", "status": "banned",
+		"name": "Mohamed", "email": "Mohamed@example.com", "status": "banned",
 	})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
@@ -188,7 +188,7 @@ func TestCreate_DuplicateEmail(t *testing.T) {
 
 	// Create the first customer
 	body := toJSON(t, map[string]string{
-		"name": "Ahmed Ali", "email": "ahmed@example.com", "status": "active",
+		"name": "Mohamed Abdelrazik", "email": "Mohamed@example.com", "status": "active",
 	})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
@@ -197,7 +197,7 @@ func TestCreate_DuplicateEmail(t *testing.T) {
 
 	// Try to create a second customer with the same email
 	body = toJSON(t, map[string]string{
-		"name": "Someone Else", "email": "ahmed@example.com", "status": "active",
+		"name": "Someone Else", "email": "Mohamed@example.com", "status": "active",
 	})
 	w = httptest.NewRecorder()
 	req, _ = http.NewRequest(http.MethodPost, "/customers", body)

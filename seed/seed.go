@@ -43,7 +43,7 @@ func main() {
 		log.Fatalf("Failed to insert user: %v", err)
 	}
 
-	fmt.Printf("✅ User '%s' created successfully.\n", username)
+	fmt.Printf(" User '%s' created successfully.\n", username)
 	fmt.Printf("   Username: %s\n", username)
 	fmt.Printf("   Password: %s\n", password)
 }
