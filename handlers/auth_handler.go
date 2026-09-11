@@ -46,8 +46,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	hashedPassword, err := h.userRepo.GetHashedPassword(input.Username)
 	if err != nil {
 		if errors.Is(err, repositories.ErrInvalidCredentials) {
-			// Return the same message for wrong username AND wrong password
-			// to avoid leaking which one is incorrect
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 			return
 		}

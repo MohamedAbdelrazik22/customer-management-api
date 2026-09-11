@@ -258,10 +258,7 @@ func TestGetByID_Found(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
 // DELETE /customers/:id — Delete tests
-// --------------------------------------------------------------------------
-
 func TestDelete_NotFound(t *testing.T) {
 	r := setupRouter(newFakeRepo())
 	w := httptest.NewRecorder()
@@ -296,10 +293,7 @@ func TestDelete_Success(t *testing.T) {
 	}
 }
 
-// --------------------------------------------------------------------------
 // PUT /customers/:id — Update tests
-// --------------------------------------------------------------------------
-
 func TestUpdate_NotFound(t *testing.T) {
 	r := setupRouter(newFakeRepo())
 	body := toJSON(t, map[string]string{

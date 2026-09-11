@@ -1,8 +1,6 @@
 package handlers
 
-// validation_test.go — tests the validateCustomerInput helper directly.
-// These tests live in package 'handlers' (not handlers_test) so they can
-// access the unexported validateCustomerInput function.
+// validation_test.go tests the unexported validateCustomerInput helper within package 'handlers'.
 
 import "testing"
 

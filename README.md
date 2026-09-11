@@ -62,11 +62,11 @@ Edit `.env`:
 
 ```env
 DB_HOST=localhost
-DB_PORT=3306
+DB_PORT=3307
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=customer_management
-SERVER_PORT=8080
+SERVER_PORT=8081
 ```
 
 ### 5. Install Go dependencies

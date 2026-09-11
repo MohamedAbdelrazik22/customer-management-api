@@ -42,12 +42,7 @@ func NewCustomerHandlerWithInterface(repo CustomerRepositoryInterface) *Customer
 	return &CustomerHandler{repo: repo}
 }
 
-// GetAll handles GET /customers
-// Supports optional query parameters:
-//
-//	?page=1      (default: 1)
-//	?limit=10    (default: 10, max: 100)
-//	?search=mohamed (searches name and email)
+// GetAll handles GET /customers with optional params: page (def:1), limit (def:10, max:100), and search (name/email).
 func (h *CustomerHandler) GetAll(c *gin.Context) {
 	params := models.ListParams{
 		Page:   parseQueryInt(c, "page", 1),
@@ -181,12 +176,7 @@ func (h *CustomerHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Customer deleted successfully"})
 }
 
-// --------------------------------------------------------------------------
 // Helpers
-// --------------------------------------------------------------------------
-
-// parseID parses the :id URL parameter and writes a 400 response if invalid.
-// Returns the id and true on success, or 0 and false on failure.
 func parseID(c *gin.Context) (int, bool) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
@@ -196,8 +186,7 @@ func parseID(c *gin.Context) (int, bool) {
 	return id, true
 }
 
-// parseQueryInt reads a query parameter as an integer.
-// Falls back to defaultVal if the parameter is missing or not a valid integer.
+// parseQueryInt parses an integer query parameter, returning defaultVal on failure.
 func parseQueryInt(c *gin.Context, key string, defaultVal int) int {
 	raw := c.Query(key)
 	if raw == "" {
@@ -210,8 +199,7 @@ func parseQueryInt(c *gin.Context, key string, defaultVal int) int {
 	return val
 }
 
-// validateCustomerInput checks name, email and status fields.
-// Returns a non-empty error string on the first validation failure, or "" if valid.
+// validateCustomerInput validates name, email, and status, returning an error string if invalid.
 func validateCustomerInput(name, email, status string) string {
 	if name == "" {
 		return "Name is required"
