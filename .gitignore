@@ -1,0 +1,19 @@
+# Environment variables — never commit real credentials
+.env
+
+# Go build output
+*.exe
+*.out
+/bin/
+
+# Dependency vendor directory (if used)
+/vendor/
+
+# IDE / editor folders
+.vscode/
+.idea/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
