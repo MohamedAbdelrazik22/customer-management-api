@@ -2,7 +2,7 @@ package main
 
 // seed.go — run this once to create a test admin user
 // Usage: go run seed/seed.go
-// This file is NOT part of the main application.
+// This file isn't part of the main application.
 
 import (
 	"fmt"

@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	// Load .env file if it exists (ignored in production where env vars are set directly)
+	// Load .env file if it exists 
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found — using environment variables")
 	}
@@ -23,7 +23,7 @@ func main() {
 	db := config.ConnectDB()
 	defer db.Close()
 
-	// Wire up the layers: repository → handler → router
+	// Wire up the layers: repository -> handler -> router
 	customerRepo := repositories.NewCustomerRepository(db)
 	customerHandler := handlers.NewCustomerHandler(customerRepo)
 

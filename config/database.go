@@ -16,7 +16,7 @@ func ConnectDB() *sql.DB {
 	host := getEnv("DB_HOST", "localhost")
 	port := getEnv("DB_PORT", "3307")
 	user := getEnv("DB_USER", "root")
-	password := getEnv("DB_PASSWORD", "MySQL@123")
+	password := getEnv("DB_PASSWORD", "")
 	dbName := getEnv("DB_NAME", "customer_management")
 
 	// Build the DSN (Data Source Name)
