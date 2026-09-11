@@ -14,9 +14,9 @@ import (
 // closing it when the application shuts down.
 func ConnectDB() *sql.DB {
 	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "3306")
+	port := getEnv("DB_PORT", "3307")
 	user := getEnv("DB_USER", "root")
-	password := getEnv("DB_PASSWORD", "")
+	password := getEnv("DB_PASSWORD", "MySQL@123")
 	dbName := getEnv("DB_NAME", "customer_management")
 
 	// Build the DSN (Data Source Name)

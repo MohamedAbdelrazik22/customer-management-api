@@ -27,11 +27,14 @@ func main() {
 	customerRepo := repositories.NewCustomerRepository(db)
 	customerHandler := handlers.NewCustomerHandler(customerRepo)
 
+	userRepo := repositories.NewUserRepository(db)
+	authHandler := handlers.NewAuthHandler(userRepo)
+
 	// Create the Gin engine with default middleware (Logger + Recovery)
 	r := gin.Default()
 
 	// Register all routes
-	routes.SetupRoutes(r, customerHandler)
+	routes.SetupRoutes(r, customerHandler, authHandler)
 
 	// Determine which port to listen on
 	port := os.Getenv("SERVER_PORT")
