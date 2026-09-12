@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/go-sql-driver/mysql"
+
 	"customer-management-api/models"
 )
 
@@ -127,6 +129,13 @@ func (r *CustomerRepository) Create(ctx context.Context, input models.CreateCust
 
 	result, err := r.db.ExecContext(ctx, query, input.Name, input.Email, input.Status)
 	if err != nil {
+		// Map MySQL duplicate-key error (1062) to ErrEmailTaken for consistent error handling.
+		// This handles the race condition where two concurrent requests pass the emailExists
+		// check at the same time but only one can succeed at the database level.
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return nil, ErrEmailTaken
+		}
 		return nil, err
 	}
 
