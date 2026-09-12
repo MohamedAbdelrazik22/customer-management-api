@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 )
@@ -20,10 +21,11 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 // GetHashedPassword returns the bcrypt-hashed password for the given username.
 // Returns ErrInvalidCredentials if the username does not exist.
-func (r *UserRepository) GetHashedPassword(username string) (string, error) {
+func (r *UserRepository) GetHashedPassword(ctx context.Context, username string) (string, error) {
 	var hashedPassword string
 
-	err := r.db.QueryRow(
+	err := r.db.QueryRowContext(
+		ctx,
 		"SELECT password FROM users WHERE username = ?",
 		username,
 	).Scan(&hashedPassword)

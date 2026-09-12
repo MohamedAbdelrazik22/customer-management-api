@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -26,7 +27,7 @@ func NewCustomerRepository(db *sql.DB) *CustomerRepository {
 // GetAll retrieves customers with optional search and pagination.
 // params.Search filters by name or email (case-insensitive LIKE match).
 // params.Page and params.Limit control which page of results is returned.
-func (r *CustomerRepository) GetAll(params models.ListParams) (*models.PaginatedResult, error) {
+func (r *CustomerRepository) GetAll(ctx context.Context, params models.ListParams) (*models.PaginatedResult, error) {
 	// Sanitize pagination values
 	if params.Page < 1 {
 		params.Page = 1
@@ -50,7 +51,7 @@ func (r *CustomerRepository) GetAll(params models.ListParams) (*models.Paginated
 	// Count total matching rows (for pagination metadata)
 	var total int
 	countQuery := "SELECT COUNT(*) FROM customers" + whereClause
-	if err := r.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, err
 	}
 
@@ -60,7 +61,7 @@ func (r *CustomerRepository) GetAll(params models.ListParams) (*models.Paginated
 		whereClause + " ORDER BY id LIMIT ? OFFSET ?"
 	args = append(args, params.Limit, offset)
 
-	rows, err := r.db.Query(dataQuery, args...)
+	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -98,11 +99,11 @@ func (r *CustomerRepository) GetAll(params models.ListParams) (*models.Paginated
 
 // GetByID retrieves a single customer by their ID.
 // Returns ErrNotFound if no such customer exists.
-func (r *CustomerRepository) GetByID(id int) (*models.Customer, error) {
+func (r *CustomerRepository) GetByID(ctx context.Context, id int) (*models.Customer, error) {
 	query := "SELECT id, name, email, status, created_at FROM customers WHERE id = ?"
 
 	var c models.Customer
-	err := r.db.QueryRow(query, id).Scan(&c.ID, &c.Name, &c.Email, &c.Status, &c.CreatedAt)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&c.ID, &c.Name, &c.Email, &c.Status, &c.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -114,9 +115,9 @@ func (r *CustomerRepository) GetByID(id int) (*models.Customer, error) {
 }
 
 // Create inserts a new customer and returns the newly created record.
-func (r *CustomerRepository) Create(input models.CreateCustomerInput) (*models.Customer, error) {
+func (r *CustomerRepository) Create(ctx context.Context, input models.CreateCustomerInput) (*models.Customer, error) {
 	// Check for duplicate email before inserting
-	if exists, err := r.emailExists(input.Email, 0); err != nil {
+	if exists, err := r.emailExists(ctx, input.Email, 0); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, ErrEmailTaken
@@ -124,7 +125,7 @@ func (r *CustomerRepository) Create(input models.CreateCustomerInput) (*models.C
 
 	query := "INSERT INTO customers (name, email, status) VALUES (?, ?, ?)"
 
-	result, err := r.db.Exec(query, input.Name, input.Email, input.Status)
+	result, err := r.db.ExecContext(ctx, query, input.Name, input.Email, input.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -134,43 +135,43 @@ func (r *CustomerRepository) Create(input models.CreateCustomerInput) (*models.C
 		return nil, err
 	}
 
-	return r.GetByID(int(newID))
+	return r.GetByID(ctx, int(newID))
 }
 
 // Update modifies an existing customer's fields.
 // Returns ErrNotFound if the customer does not exist.
 // Returns ErrEmailTaken if the email belongs to a different customer.
-func (r *CustomerRepository) Update(id int, input models.UpdateCustomerInput) (*models.Customer, error) {
+func (r *CustomerRepository) Update(ctx context.Context, id int, input models.UpdateCustomerInput) (*models.Customer, error) {
 	// Make sure the customer exists first
-	if _, err := r.GetByID(id); err != nil {
+	if _, err := r.GetByID(ctx, id); err != nil {
 		return nil, err
 	}
 
 	// Check email uniqueness, excluding the current customer
-	if exists, err := r.emailExists(input.Email, id); err != nil {
+	if exists, err := r.emailExists(ctx, input.Email, id); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, ErrEmailTaken
 	}
 
 	query := "UPDATE customers SET name = ?, email = ?, status = ? WHERE id = ?"
-	if _, err := r.db.Exec(query, input.Name, input.Email, input.Status, id); err != nil {
+	if _, err := r.db.ExecContext(ctx, query, input.Name, input.Email, input.Status, id); err != nil {
 		return nil, err
 	}
 
-	return r.GetByID(id)
+	return r.GetByID(ctx, id)
 }
 
 // Delete removes a customer by ID.
 // Returns ErrNotFound if no such customer exists.
-func (r *CustomerRepository) Delete(id int) error {
+func (r *CustomerRepository) Delete(ctx context.Context, id int) error {
 	// Make sure the customer exists first
-	if _, err := r.GetByID(id); err != nil {
+	if _, err := r.GetByID(ctx, id); err != nil {
 		return err
 	}
 
 	query := "DELETE FROM customers WHERE id = ?"
-	if _, err := r.db.Exec(query, id); err != nil {
+	if _, err := r.db.ExecContext(ctx, query, id); err != nil {
 		return err
 	}
 
@@ -179,17 +180,19 @@ func (r *CustomerRepository) Delete(id int) error {
 
 // emailExists checks whether a given email is already used by another customer.
 // Pass excludeID = 0 (or any non-positive value) when creating a new customer.
-func (r *CustomerRepository) emailExists(email string, excludeID int) (bool, error) {
+func (r *CustomerRepository) emailExists(ctx context.Context, email string, excludeID int) (bool, error) {
 	var count int
 	var err error
 
 	if excludeID > 0 {
-		err = r.db.QueryRow(
+		err = r.db.QueryRowContext(
+			ctx,
 			"SELECT COUNT(*) FROM customers WHERE email = ? AND id != ?",
 			email, excludeID,
 		).Scan(&count)
 	} else {
-		err = r.db.QueryRow(
+		err = r.db.QueryRowContext(
+			ctx,
 			"SELECT COUNT(*) FROM customers WHERE email = ?",
 			email,
 		).Scan(&count)

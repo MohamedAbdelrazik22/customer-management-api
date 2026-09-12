@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -32,7 +33,7 @@ func newFakeRepo() *fakeRepo {
 	}
 }
 
-func (f *fakeRepo) GetAll(params models.ListParams) (*models.PaginatedResult, error) {
+func (f *fakeRepo) GetAll(_ context.Context, params models.ListParams) (*models.PaginatedResult, error) {
 	list := []models.Customer{}
 	for _, c := range f.customers {
 		list = append(list, *c)
@@ -46,7 +47,7 @@ func (f *fakeRepo) GetAll(params models.ListParams) (*models.PaginatedResult, er
 	}, nil
 }
 
-func (f *fakeRepo) GetByID(id int) (*models.Customer, error) {
+func (f *fakeRepo) GetByID(_ context.Context, id int) (*models.Customer, error) {
 	c, ok := f.customers[id]
 	if !ok {
 		return nil, repositories.ErrNotFound
@@ -54,7 +55,7 @@ func (f *fakeRepo) GetByID(id int) (*models.Customer, error) {
 	return c, nil
 }
 
-func (f *fakeRepo) Create(input models.CreateCustomerInput) (*models.Customer, error) {
+func (f *fakeRepo) Create(_ context.Context, input models.CreateCustomerInput) (*models.Customer, error) {
 	for _, c := range f.customers {
 		if c.Email == input.Email {
 			return nil, repositories.ErrEmailTaken
@@ -71,7 +72,7 @@ func (f *fakeRepo) Create(input models.CreateCustomerInput) (*models.Customer, e
 	return c, nil
 }
 
-func (f *fakeRepo) Update(id int, input models.UpdateCustomerInput) (*models.Customer, error) {
+func (f *fakeRepo) Update(_ context.Context, id int, input models.UpdateCustomerInput) (*models.Customer, error) {
 	c, ok := f.customers[id]
 	if !ok {
 		return nil, repositories.ErrNotFound
@@ -87,7 +88,7 @@ func (f *fakeRepo) Update(id int, input models.UpdateCustomerInput) (*models.Cus
 	return c, nil
 }
 
-func (f *fakeRepo) Delete(id int) error {
+func (f *fakeRepo) Delete(_ context.Context, id int) error {
 	if _, ok := f.customers[id]; !ok {
 		return repositories.ErrNotFound
 	}
@@ -182,6 +183,8 @@ func TestCreate_InvalidStatus(t *testing.T) {
 	}
 }
 
+// Test 2 — Duplicate Customer Email: creating a second customer with the same email
+// must return 409 Conflict with error "Email already exists".
 func TestCreate_DuplicateEmail(t *testing.T) {
 	repo := newFakeRepo()
 	r := setupRouter(repo)
@@ -195,6 +198,10 @@ func TestCreate_DuplicateEmail(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
+	if w.Code != http.StatusCreated {
+		t.Fatalf("setup: expected 201 for first customer, got %d", w.Code)
+	}
+
 	// Try to create a second customer with the same email
 	body = toJSON(t, map[string]string{
 		"name": "Someone Else", "email": "Mohamed@example.com", "status": "active",
@@ -205,7 +212,16 @@ func TestCreate_DuplicateEmail(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusConflict {
-		t.Errorf("expected 409, got %d", w.Code)
+		t.Errorf("expected 409, got %d — body: %s", w.Code, w.Body.String())
+	}
+
+	// Verify the error message
+	var resp map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["error"] != "Email already exists" {
+		t.Errorf("expected error 'Email already exists', got %q", resp["error"])
 	}
 }
 
@@ -224,6 +240,7 @@ func TestGetByID_NotFound(t *testing.T) {
 	}
 }
 
+// Test 3 — Invalid Customer ID: a non-numeric ID must return 400 Bad Request.
 func TestGetByID_InvalidID(t *testing.T) {
 	r := setupRouter(newFakeRepo())
 	w := httptest.NewRecorder()
@@ -232,6 +249,14 @@ func TestGetByID_InvalidID(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", w.Code)
+	}
+
+	var resp map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["error"] != "Invalid customer ID" {
+		t.Errorf("expected error 'Invalid customer ID', got %q", resp["error"])
 	}
 }
 

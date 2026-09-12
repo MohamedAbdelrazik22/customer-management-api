@@ -43,7 +43,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Look up the hashed password for this username
-	hashedPassword, err := h.userRepo.GetHashedPassword(input.Username)
+	hashedPassword, err := h.userRepo.GetHashedPassword(c.Request.Context(), input.Username)
 	if err != nil {
 		if errors.Is(err, repositories.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})

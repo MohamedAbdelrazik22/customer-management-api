@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"regexp"
@@ -19,11 +20,11 @@ var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-
 // CustomerRepositoryInterface defines the methods the handler depends on.
 // This allows tests to swap in a fake repository without a real database.
 type CustomerRepositoryInterface interface {
-	GetAll(params models.ListParams) (*models.PaginatedResult, error)
-	GetByID(id int) (*models.Customer, error)
-	Create(input models.CreateCustomerInput) (*models.Customer, error)
-	Update(id int, input models.UpdateCustomerInput) (*models.Customer, error)
-	Delete(id int) error
+	GetAll(ctx context.Context, params models.ListParams) (*models.PaginatedResult, error)
+	GetByID(ctx context.Context, id int) (*models.Customer, error)
+	Create(ctx context.Context, input models.CreateCustomerInput) (*models.Customer, error)
+	Update(ctx context.Context, id int, input models.UpdateCustomerInput) (*models.Customer, error)
+	Delete(ctx context.Context, id int) error
 }
 
 // CustomerHandler holds a reference to the customer repository interface.
@@ -50,7 +51,7 @@ func (h *CustomerHandler) GetAll(c *gin.Context) {
 		Search: strings.TrimSpace(c.Query("search")),
 	}
 
-	result, err := h.repo.GetAll(params)
+	result, err := h.repo.GetAll(c.Request.Context(), params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve customers"})
 		return
@@ -67,7 +68,7 @@ func (h *CustomerHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	customer, err := h.repo.GetByID(id)
+	customer, err := h.repo.GetByID(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
@@ -100,10 +101,10 @@ func (h *CustomerHandler) Create(c *gin.Context) {
 		return
 	}
 
-	customer, err := h.repo.Create(input)
+	customer, err := h.repo.Create(c.Request.Context(), input)
 	if err != nil {
 		if errors.Is(err, repositories.ErrEmailTaken) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Email is already in use"})
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create customer"})
@@ -138,14 +139,14 @@ func (h *CustomerHandler) Update(c *gin.Context) {
 		return
 	}
 
-	customer, err := h.repo.Update(id, input)
+	customer, err := h.repo.Update(c.Request.Context(), id, input)
 	if err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
 			return
 		}
 		if errors.Is(err, repositories.ErrEmailTaken) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Email is already in use by another customer"})
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update customer"})
@@ -163,7 +164,7 @@ func (h *CustomerHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err := h.repo.Delete(id)
+	err := h.repo.Delete(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
