@@ -77,7 +77,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func generateToken(username string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "default-secret-change-in-production"
+		return "", errors.New("JWT_SECRET is not configured")
 	}
 
 	claims := jwt.MapClaims{

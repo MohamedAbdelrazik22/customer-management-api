@@ -35,7 +35,11 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenStr := parts[1]
 		secret := os.Getenv("JWT_SECRET")
 		if secret == "" {
-			secret = "default-secret-change-in-production"
+			// JWT_SECRET must be set at startup — this is a configuration error
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": "Server configuration error",
+			})
+			return
 		}
 
 		// Parse and validate the token
