@@ -7,11 +7,13 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 
 	"customer-management-api/handlers"
+	"customer-management-api/middleware"
 	"customer-management-api/models"
 	"customer-management-api/repositories"
 )
@@ -358,6 +360,94 @@ func TestUpdate_EmailConflict(t *testing.T) {
 
 	if w.Code != http.StatusConflict {
 		t.Errorf("expected 409, got %d", w.Code)
+	}
+}
+
+// --------------------------------------------------------------------------
+// Test 4 — Unauthorized Request
+// Protected endpoints must return 401 when no valid JWT token is provided.
+// --------------------------------------------------------------------------
+
+// setupProtectedRouter creates a router with the real AuthMiddleware applied to POST /customers,
+// so we can test the 401 behavior without a real database.
+func setupProtectedRouter(repo handlers.CustomerRepositoryInterface) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h := handlers.NewCustomerHandlerWithInterface(repo)
+
+	// Public read routes
+	r.GET("/customers", h.GetAll)
+	r.GET("/customers/:id", h.GetByID)
+
+	// Protected routes — require a valid JWT
+	protected := r.Group("/customers")
+	protected.Use(middleware.AuthMiddleware())
+	{
+		protected.POST("", h.Create)
+		protected.PUT("/:id", h.Update)
+		protected.DELETE("/:id", h.Delete)
+	}
+	return r
+}
+
+// TestCreate_NoToken verifies that POST /customers returns 401 when no Authorization header is provided.
+func TestCreate_NoToken(t *testing.T) {
+	// JWT_SECRET must be set for the middleware to work correctly
+	os.Setenv("JWT_SECRET", "test-secret-for-auth-tests")
+	defer os.Unsetenv("JWT_SECRET")
+
+	r := setupProtectedRouter(newFakeRepo())
+	body := toJSON(t, map[string]string{
+		"name": "Test User", "email": "test@example.com", "status": "active",
+	})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
+	req.Header.Set("Content-Type", "application/json")
+	// No Authorization header set — request should be rejected
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 Unauthorized, got %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestCreate_InvalidToken verifies that POST /customers returns 401 when an invalid JWT is provided.
+func TestCreate_InvalidToken(t *testing.T) {
+	os.Setenv("JWT_SECRET", "test-secret-for-auth-tests")
+	defer os.Unsetenv("JWT_SECRET")
+
+	r := setupProtectedRouter(newFakeRepo())
+	body := toJSON(t, map[string]string{
+		"name": "Test User", "email": "test@example.com", "status": "active",
+	})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer this.is.not.a.valid.token")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 Unauthorized for invalid token, got %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestCreate_MalformedAuthHeader verifies that a malformed Authorization header returns 401.
+func TestCreate_MalformedAuthHeader(t *testing.T) {
+	os.Setenv("JWT_SECRET", "test-secret-for-auth-tests")
+	defer os.Unsetenv("JWT_SECRET")
+
+	r := setupProtectedRouter(newFakeRepo())
+	body := toJSON(t, map[string]string{
+		"name": "Test User", "email": "test@example.com", "status": "active",
+	})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/customers", body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "NotBearer sometoken")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 for malformed auth header, got %d", w.Code)
 	}
 }
 

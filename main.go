@@ -16,18 +16,11 @@ import (
 
 	"customer-management-api/config"
 	"customer-management-api/handlers"
+	"customer-management-api/main_test_helpers"
 	"customer-management-api/repositories"
 	"customer-management-api/routes"
 )
 
-// validateConfig checks that all required environment variables are set.
-// It returns an error if any required variable is missing or empty.
-func validateConfig() error {
-	if os.Getenv("JWT_SECRET") == "" {
-		return errors.New("JWT_SECRET is required")
-	}
-	return nil
-}
 
 func main() {
 	// Load .env file if it exists
@@ -36,7 +29,7 @@ func main() {
 	}
 
 	// Validate required configuration before starting
-	if err := validateConfig(); err != nil {
+	if err := main_test_helpers.ValidateConfig(); err != nil {
 		log.Fatalf("Configuration error: %v", err)
 	}
 
