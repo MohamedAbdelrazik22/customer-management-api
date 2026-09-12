@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -83,8 +84,16 @@ func main() {
 
 	log.Println("Shutting down server — waiting for in-flight requests to finish...")
 
-	// Give in-flight requests up to 10 seconds to complete
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Allow overriding the shutdown timeout via environment variable (default: 10s)
+	shutdownTimeout := 10 * time.Second
+	if s := os.Getenv("SHUTDOWN_TIMEOUT_SECONDS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			shutdownTimeout = time.Duration(n) * time.Second
+		}
+	}
+
+	// Give in-flight requests time to complete, then force-close
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
